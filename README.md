@@ -2,5 +2,5 @@
 powershell script to execute dll's in a restricted environment
 
 
-concept taken from MDSec Research at https://www.mdsec.co.uk/2018/09/applocker-clm-bypass-via-com/
+all credit to Adam Chester, author of this article https://www.mdsec.co.uk/2018/09/applocker-clm-bypass-via-com/
 
