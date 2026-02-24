@@ -1,3 +1,6 @@
+###############################
+#update `username` to appropriate name/filepath
+###############################
 $dllPath = "C:\users\username\Desktop\test.dll"
 $uuid = "{72C24DD5-D70A-438B-8A42-98424B88DEAD}"
 
@@ -22,6 +25,7 @@ $key = 'HKU:\{0}_classes\username' -f $sid
 New-Item -Path $key -Name CLSID -erroraction 'silentlycontinue' | Out-Null
 $key = 'HKU:\{0}_classes\username\CLSID' -f $sid
 New-ItemProperty -Path $key -Name "(Default)" -Value $uuid -ProperType String -Force -erroraction 'silentlycontinue' | Out-Null
+
 
 
 
