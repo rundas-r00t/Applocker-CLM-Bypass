@@ -1,7 +1,3 @@
-cd "$TARGET_DIR/Applocker-CLM-Bypass"
-
-# Overwrite the file with the complete, fully functional exploit code
-cat << 'EOF' > clr-via-native.c
 #define COBJMACROS
 #include <windows.h>
 #include <initguid.h>
