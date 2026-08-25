@@ -1,7 +1,7 @@
 ###############################
 #update `username` to appropriate name/filepath
 ###############################
-$dllPath = "C:\users\username\Desktop\test.dll"
+$dllPath = "C:\users\username\Desktop\bypass.dll"
 $uuid = "{72C24DD5-D70A-438B-8A42-98424B88DEAD}"
 
 New-PSDrive - PSProvider Registry -Name HKU -Root HKEY_Users -erroraction 'silentlycontinue' | Out-Null
